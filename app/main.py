@@ -21,6 +21,8 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 # Initialize FastAPI app
 app = FastAPI()
 
+
+
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
@@ -38,6 +40,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Middleware to redirect HTTP to HTTPS if necessary
+@app.middleware("http")
+async def enforce_https(request: Request, call_next):
+    # Check if the request was forwarded via HTTPS
+    if request.url.scheme == "http" and request.headers.get("x-forwarded-proto") != "https":
+        # Redirect to HTTPS version of the URL
+        https_url = request.url.replace(scheme="https")
+        return RedirectResponse(url=https_url)
+
+    response = await call_next(request)
+    return response
+    
 # Include the router from endpoints
 app.include_router(router)
 
