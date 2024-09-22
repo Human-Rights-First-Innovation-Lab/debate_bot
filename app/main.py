@@ -1,4 +1,5 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
+from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware  # Import CORS middleware
 from app.endpoints import router  # Ensure this import points to your endpoints file
 import os
@@ -12,6 +13,7 @@ from app.utils import (
     save_to_db,
 )
 from dotenv import load_dotenv
+
 
 # Access the API key from environment variables
 openai.api_key = os.getenv("OPENAI_API_KEY")
