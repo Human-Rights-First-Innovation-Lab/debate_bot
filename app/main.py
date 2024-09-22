@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import RedirectResponse
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.middleware.cors import CORSMiddleware  # Import CORS middleware
 from app.endpoints import router  # Ensure this import points to your endpoints file
 import os
@@ -21,7 +22,17 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 # Initialize FastAPI app
 app = FastAPI()
 
+app.add_middleware(
+    TrustedHostMiddleware, 
+    allowed_hosts=["dbapi-stag.hrfinnovation.org", "*.dbapi-stag.hrfinnovation.org", "localhost"]
+)
 
+@app.middleware("http")
+async def log_headers(request: Request, call_next):
+    print("X-Forwarded-Proto:", request.headers.get("x-forwarded-proto"))
+    print("X-Forwarded-For:", request.headers.get("x-forwarded-for"))
+    response = await call_next(request)
+    return response
 
 # Add CORS middleware
 app.add_middleware(
