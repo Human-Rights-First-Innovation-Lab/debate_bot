@@ -49,6 +49,7 @@ class SaveRequest(BaseModel):
 # Start session endpoint
 @router.get("/start-session/")
 async def start_session(response: Response, request: Request):
+    print(f"All Headers: {request.headers}") #debug 
     # Generate a session ID (or token)
     session_token = secrets.token_hex(16)
     
