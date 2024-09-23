@@ -70,21 +70,20 @@ async def start_session(response: Response, request: Request):
 @router.post("/generate-response/", response_model=ResponseModel)
 async def generate_response_endpoint(request: Request, data: dict):
     try:
-        # Extract session_id from cookies
+        # Extract session_id from cookies or data
         print("Request cookies:", request.cookies)
         print("Request base URL", request.base_url)
         print("Request headers:", request.headers)
         print("Request url:", request.url)
-        # commented out for now
-        # session_id = request.cookies.get("session_id")
-        session_id = req_body.session_id
+        
+        session_id = data.get("session_id")  # Reference from 'data' instead of 'req_body'
         if not session_id:
-            print("No session ID found in cookies")
+            print("No session ID found in request body")
             raise HTTPException(status_code=400, detail="Session ID is missing")
         print(f"Session ID received: {session_id}")
 
         # Extract query from the request body
-        query = req_body.query
+        query = data.get("query")  # Reference from 'data' instead of 'req_body'
         if not query:
             raise HTTPException(status_code=400, detail="Query is missing")
         
