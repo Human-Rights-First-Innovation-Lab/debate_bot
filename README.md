@@ -353,9 +353,10 @@ Stay informed about the latest changes and improvements to the project. Below yo
 > #### Add candidate win counts:
 > - Added the `leaderboard_stats.py` file to hold functions related to getting stats for the leaderboard page
 > - Added `get_winner_counts()` to get count of each candidate's wins
+
 > - added a handler `stats_handler()` in `main.py` to provide the api the json structure with placeholder values
 >
----
+
 > ## 09/18/2024
 >
 > #### Add Response Flag and Session IDs:
@@ -381,6 +382,21 @@ Stay informed about the latest changes and improvements to the project. Below yo
 > - Updated app/data/embeddings/Reichert.pkl
 > - Added into app/sources/ferguson - Ferguson_Second_Debate_Sept_18_2024.txt
 > - Added into app/sources/reichert - Reichert_Second_Debate_Sept_18_2024.txt
+> - added a handler `stats_handler()` in `main.py` to provide the api the json structure with placeholder values  
+
+---
+> ## 09/17/2024
+>
+> #### Add categorization:
+> - Added the `categorize_question()` to generate categories for questions before saving questions into the db
+> - Added `categorize_all_questions()` to update all rows with null category, in case of needing a bulk run 
+
+> #### Add leaderboard stat functions and endpoint:
+> - added an endpoint `/stats` to provide the api the json with all the leaderboard stats
+> - includes wins, party affiliations, gender, age, and top categories
+
+
+
 
 ## 📜 License
 

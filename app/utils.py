@@ -15,19 +15,20 @@ from ragas.metrics import faithfulness, answer_relevancy
 from ragas import evaluate
 import openai
 import sqlalchemy
+from sqlalchemy import Table, Column, Integer, String, update, bindparam
 from datetime import datetime
 from openai import OpenAI
 
 
-client = openai.OpenAI()
-
 # Correctly load the .env file
-#dotenv_path = r"C:\Users\Patra\OneDrive\Documents\GitHub\debate_bot\app\.env"
-#load_dotenv(dotenv_path=dotenv_path)
+dotenv_path = ".env"
+load_dotenv(dotenv_path=dotenv_path)
 
 # Get API key from environment and debug print to check if API key is loaded
 api_key = os.getenv("OPENAI_API_KEY")
 print("Loaded API Key:", api_key)  # Debugging print statement
+
+client = openai.OpenAI()
 
 if api_key:
     # Initialize OpenAI with the loaded API key
@@ -38,7 +39,7 @@ else:
 # Initialize OpenAI API key
 #openai.api_key = os.getenv('OPENAI_API_KEY')
 
-MYSQL_DATABASE = 'debatebot_dev'
+MYSQL_DATABASE = 'debatebot_prod'
 
 # Database Configuration
 MYSQL_USER = os.getenv('MYSQL_USER')
@@ -53,7 +54,11 @@ model = 'gpt-4o-mini'
 # Debugging: Print environment variable values
 print(f"MySQL User: {MYSQL_USER}")
 print(f"MySQL Host: {MYSQL_HOST}")
+print(f"MySQL Port: {MYSQL_PORT}")
 print(f"MySQL Database: {MYSQL_DATABASE}")
+
+# SQLAlchemy engine
+engine = sqlalchemy.create_engine(f'mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DATABASE}')
 
 # Function to create a database connection using MySQL Connector
 def get_database_connection():

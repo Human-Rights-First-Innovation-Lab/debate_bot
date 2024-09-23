@@ -39,16 +39,16 @@ def get_database_connection():
     connection = engine.connect()
     return connection
 
-def get_winner_counts():
+def get_winner_percents():
     """
-    This gets the counts of wins each candidate had. One win is one session where the
+    This gets the percent of wins each candidate had. One win is one session where the
     user selected this candidate a majority of the time. Ties do not count as a win for anyone.
 
     Args:
         none
 
     Returns:
-        dict {"ferguson_win_count": int, "reichert_win_count": int}
+        dict {"ferguson_win_pct": float, "reichert_win_pct": float}
 
     """
     connection = get_database_connection()
@@ -69,15 +69,9 @@ def get_winner_counts():
     print("ferguson wins:", ferguson_win_count)
     reichert_win_count = winner_per_session['reichert_winner'].sum()
     print("reichert wins:", reichert_win_count)
-
-    result = {"ferguson_win_count": int(ferguson_win_count), "reichert_win_count":int(reichert_win_count)}
+    total_count = ferguson_win_count + reichert_win_count
+    result = {"ferguson_win_pct": float(ferguson_win_count/total_count), "reichert_win_count": float(reichert_win_count/total_count)}
     return result
-
-# participant demographics, % party 
-
-# % by age range
-
-# % by gender
 
 # top categories asked about
 
@@ -186,7 +180,7 @@ def get_top_categories(n):
     print(top_categories)
     return top_categories
 
-
+# participant demographics, % party 
 def get_participant_parties():
     """
     This gets the parties and percent of participants who said they were affiliated with each.
@@ -208,23 +202,23 @@ def get_participant_parties():
     total_count = df.n.sum()
     republican_count = df.loc[df['partyName'] == "Republican"]
     republican_count = republican_count.n.sum()
-    republican_percent = republican_count/total_count
+    republican_percent = float(republican_count/total_count)
 
     democrat_count = df.loc[df['partyName'] == "Democrat"]
     democrat_count = democrat_count.n.sum()
-    democrat_percent = democrat_count/total_count
+    democrat_percent = float(democrat_count/total_count)
 
     independent_count = df.loc[df['partyName'] == "Independent"]
     independent_count = independent_count.n.sum()
-    independent_percent = independent_count/total_count
+    independent_percent = float(independent_count/total_count)
 
     other_count = df.loc[df['partyName'] == "Other"]
     other_count = other_count.n.sum()
-    other_percent = other_count/total_count
+    other_percent = float(other_count/total_count)
 
     nosay_count = df.loc[df['partyName'] == "Prefer Not To Say"]
     nosay_count = nosay_count.n.sum()
-    nosay_percent = nosay_count/total_count
+    nosay_percent = float(nosay_count/total_count)
 
     result = {"republican": republican_percent,
         "democrat": democrat_percent,
@@ -234,4 +228,103 @@ def get_participant_parties():
     print(result)
     return result
 
-get_participant_parties()
+# % by gender
+def get_participant_genders():
+    """
+    This gets the genders and percent of participants who said they identify with each.
+
+    Args:
+        none
+
+    Returns:
+        dict, {"male": int, "female": int, "nonbinary": int, "prefer_not_to_say": int}
+    """
+    connection = get_database_connection()
+    query = '''
+        select genderIdentity, count(1) as n 
+        from Session
+        group by genderIdentity
+        '''
+    df = pd.read_sql_query(query, connection)
+    connection.close()
+    total_count = df.n.sum()
+    male_count = df.loc[df['genderIdentity'] == "male"]
+    male_count = male_count.n.sum()
+    male_percent = float(male_count/total_count)
+
+    female_count = df.loc[df['genderIdentity'] == "female"]
+    female_count = female_count.n.sum()
+    female_percent = float(female_count/total_count)
+
+    nonbinary_count = df.loc[df['genderIdentity'] == "Non-Binary"]
+    nonbinary_count = nonbinary_count.n.sum()
+    nonbinary_percent = float(nonbinary_count/total_count)
+
+    nosay_count = df.loc[df['genderIdentity'] == "Prefer Not To Say"]
+    nosay_count = nosay_count.n.sum()
+    nosay_percent = float(nosay_count/total_count)
+
+    result = {"male": male_percent,
+        "female": female_percent,
+        "nonbinary": nonbinary_percent,
+        "prefer_not_to_say": nosay_percent}
+    print(result)
+    return result
+
+# % by age range
+
+def get_participant_ages():
+    """
+    This gets the age brackets and percent of participants who said they identify with each.
+
+    Args:
+        none
+
+    Returns:
+        dict, {"<18": float, "18-35": float, "36-55": float, "56-75": float, "76+": float}
+        
+    """
+    connection = get_database_connection()
+    query = '''
+        select case 
+            when age <18 then '<18'
+            when age >18 and age <35 then '18-35'
+            when age >35 and age <55 then '36-55'
+            when age >55 and age <70 then '56-75'
+            when age >75 then '76+'
+            end
+            as age_bucket, 1 as n 
+        from Session
+        '''
+    df = pd.read_sql_query(query, connection)
+    connection.close()
+    total_count = df.n.sum()
+    count_0_18 = df.loc[df['age_bucket'] == "<18"]
+    count_0_18 = count_0_18.n.sum()
+    pct_0_18 = float(count_0_18/total_count)
+
+    count_18_35 = df.loc[df['age_bucket'] == "18-35"]
+    count_18_35 = count_18_35.n.sum()
+    pct_18_35 = float(count_18_35/total_count)
+
+    count_36_55 = df.loc[df['age_bucket'] == "36-55"]
+    count_36_55 = count_36_55.n.sum()
+    pct_36_55 = float(count_36_55/total_count)
+
+    count_56_75 = df.loc[df['age_bucket'] == "56-75"]
+    count_56_75 = count_56_75.n.sum()
+    pct_56_75 = float(count_56_75/total_count)
+
+    count_76 = df.loc[df['age_bucket'] == "76+"]
+    count_76 = count_76.n.sum()
+    pct_76 = float(count_76/total_count)
+
+    result = {"pct_0_18": pct_0_18,
+        "pct_18_35": pct_18_35,
+        "pct_36_55": pct_36_55,
+        "pct_56_75": pct_56_75,
+        "pct_76": pct_76}
+    print(result)
+    return result
+
+get_participant_ages()

@@ -1,3 +1,4 @@
+
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
@@ -15,12 +16,12 @@ from app.utils import (
 )
 from dotenv import load_dotenv
 
-
 # Access the API key from environment variables
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # Initialize FastAPI app
 app = FastAPI()
+
 
 app.add_middleware(
     TrustedHostMiddleware, 
@@ -46,12 +47,12 @@ app.add_middleware(
         "https://debatebot.hrfinnovation.org",
         "https://debatebot-client-git-develop-hrf-innovation-lab.vercel.app/",
         "https://debatebot-client-git-develop-hrf-innovation-lab.vercel.app"
-        
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # Middleware to redirect HTTP to HTTPS if necessary
 @app.middleware("http")
@@ -65,6 +66,7 @@ async def enforce_https(request: Request, call_next):
     response = await call_next(request)
     return response
     
+
 # Include the router from endpoints
 app.include_router(router)
 

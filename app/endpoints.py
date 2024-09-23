@@ -49,7 +49,9 @@ class SaveRequest(BaseModel):
 # Start session endpoint
 @router.get("/start-session/")
 async def start_session(response: Response, request: Request):
-    print(f"All Headers: {request.headers}") #debug 
+
+  print(f"All Headers: {request.headers}") #debug 
+
     # Generate a session ID (or token)
     session_token = secrets.token_hex(16)
     
@@ -65,6 +67,7 @@ async def start_session(response: Response, request: Request):
 
     # Optionally save session_token
     return {"message": "Session started", "session_id": session_token}
+
 
 # Endpoint to receive user query, generate a response, and save to database
 @router.post("/generate-response/", response_model=ResponseModel)
@@ -201,8 +204,7 @@ async def generate_response_endpoint(request: Request, data: dict):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An error occurred while processing your request. Please try again later."
-        )
-        
+
 @router.get("/stats")
 async def stats_handler():
     candidate_wins = get_winner_percents()
@@ -221,3 +223,4 @@ async def stats_handler():
         "top_categories": top_categories
     })
     return response
+
