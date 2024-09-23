@@ -70,22 +70,52 @@ async def start_session(response: Response, request: Request):
 @router.post("/generate-response/", response_model=ResponseModel)
 async def generate_response_endpoint(request: Request, data: dict):
     try:
-        # Extract session_id from cookies or data
+        # Debug: Print all cookies in the incoming request
         print("Request cookies:", request.cookies)
-        print("Request base URL", request.base_url)
+
+        # Debug: Print all headers for additional context
         print("Request headers:", request.headers)
-        print("Request url:", request.url)
+
+        # Debug: Print the base URL and full URL of the request
+        print("Request base URL:", request.base_url)
+        print("Request URL:", request.url)
+
+        # First, try to extract session_id from the cookies
+        session_id = request.cookies.get("session_id")
         
-        session_id = data.get("session_id")  # Reference from 'data' instead of 'req_body'
+        # Debug: Print the session ID retrieved from cookies
+        print(f"Session ID from cookies: {session_id}")
+
         if not session_id:
-            print("No session ID found in request body")
+            # If no session ID in cookies, fall back to checking the request body
+            session_id = data.get("session_id")
+            # Debug: Print session ID from the request body if cookies didn't have it
+            print(f"Session ID from request body: {session_id}")
+
+        if not session_id:
+            print("No session ID found in cookies or request body")
             raise HTTPException(status_code=400, detail="Session ID is missing")
-        print(f"Session ID received: {session_id}")
+        
+        print(f"Session ID used: {session_id}")
 
         # Extract query from the request body
-        query = data.get("query")  # Reference from 'data' instead of 'req_body'
+        query = data.get("query")
         if not query:
+            print("Query is missing from request body")
             raise HTTPException(status_code=400, detail="Query is missing")
+
+        print(f"Query received: {query}")
+
+        # Continue with the rest of the logic
+        # (Saving the query, generating responses, etc.)
+
+        return response_data_dict
+
+    except Exception as e:
+        # Debug: Print any errors that occur during processing
+        print(f"An error occurred: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
         
         # Insert user query into the database
         vals = (session_id, query, datetime.now())  # Use session_id
