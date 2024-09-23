@@ -106,17 +106,6 @@ async def generate_response_endpoint(request: Request, data: dict):
 
         print(f"Query received: {query}")
 
-        # Continue with the rest of the logic
-        # (Saving the query, generating responses, etc.)
-
-        return response_data_dict
-
-    except Exception as e:
-        # Debug: Print any errors that occur during processing
-        print(f"An error occurred: {e}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
-
-        
         # Insert user query into the database
         vals = (session_id, query, datetime.now())  # Use session_id
         insert_into_database("INSERT INTO Query (sessionId, query, timestamp) VALUES (%s, %s, %s)", vals)
@@ -213,7 +202,7 @@ async def generate_response_endpoint(request: Request, data: dict):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An error occurred while processing your request. Please try again later."
         )
-
+        
 @router.get("/stats")
 async def stats_handler():
     candidate_wins = get_winner_percents()
