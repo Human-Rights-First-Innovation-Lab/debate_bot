@@ -204,6 +204,7 @@ async def generate_response_endpoint(request: Request, data: dict):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An error occurred while processing your request. Please try again later."
+        )
 
 @router.get("/stats")
 async def stats_handler():
