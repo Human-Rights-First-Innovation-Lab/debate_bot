@@ -67,9 +67,8 @@ async def start_session(response: Response, request: Request):
     return {"message": "Session started", "session_id": session_token}
 
 # Endpoint to receive user query, generate a response, and save to database
-# Endpoint to receive user query, generate a response, and save to database
 @router.post("/generate-response/", response_model=ResponseModel)
-async def generate_response_endpoint(request: Request, req_body: QueryRequest):
+async def generate_response_endpoint(request: Request, data: dict):
     try:
         # Extract session_id from cookies
         print("Request cookies:", request.cookies)
