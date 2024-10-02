@@ -20,8 +20,8 @@ app = FastAPI()
 app.include_router(router)
 
 # Hardcoded Auth0 Configuration
-AUTH0_BASE_URL = os.getenv("AUTH0_DOMAIN", "https://hrf-production.us.auth0.com/")
-AUTH0_M2M_AUDIENCE = os.getenv("AUTH0_AUDIENCE", "https://dbapi.hrfinnovation.org/api/v2/")
+AUTH0_BASE_URL = 'https://hrf-production.us.auth0.com/'
+AUTH0_M2M_AUDIENCE ='https://dbapi.hrfinnovation.org/api/v2/'
 AUTH0_CLIENT_ID = 'q3MJogjysFPIdcLK1fQyktOWQAFaXusb'  
 AUTH0_CLIENT_SECRET = 'N_NJq6Rcn2GDHl7Ly8O84JMwLQQtfQYbrCqEE94wKyHkqPP_XW9MWlvZLIWrp2PO'  
 #AUTH0_CLIENT_ID = os.getenv("AUTH0_CLIENT_ID")
