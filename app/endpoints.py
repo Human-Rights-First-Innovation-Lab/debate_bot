@@ -57,7 +57,7 @@ class SaveRequest(BaseModel):
     faithfulness: float
 
 # Load Auth0 settings from environment
-AUTH0_DOMAIN = os.getenv("AUTH0_DOMAIN", "https://hrf-production.us.auth0.com/")
+AUTH0_DOMAIN = os.getenv("AUTH0_DOMAIN", "hrf-production.us.auth0.com")
 AUTH0_AUDIENCE = os.getenv("AUTH0_AUDIENCE", "https://dbapi.hrfinnovation.org/api/v2/")
 ALGORITHMS = ["RS256"]
 
