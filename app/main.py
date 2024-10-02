@@ -21,21 +21,18 @@ AUTH0_CLIENT_SECRET = 'UmO8p22fzh_pciTMQXT-nCEZpZzdXy9_iteR2l9UYvPpNV1qvP1l1N-5j
 # Add trusted hosts
 app.add_middleware(
     TrustedHostMiddleware,
-    allowed_hosts=["dbapi-stag.hrfinnovation.org", "*.dbapi-stag.hrfinnovation.org", "localhost"]
-  
+    allowed_hosts=["dbapi-stag.hrfinnovation.org", "*.dbapi-stag.hrfinnovation.org", "debatebot.hrfinnovation.org", "*.debatebot.hrfinnovation.org""localhost"],
+)  
+
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://dbapi.hrfinnovation.org",  # Main Branch FE
-        "https://dbapi-stag.hrfinnovation.org",  # Dev branch FE
-        "https://debatebot-client.vercel.app",
-        "https://debatebot-client.vercel.app/",
-        "https://debatebot.hrfinnovation.org/",
-        "https://debatebot.hrfinnovation.org",
-        "https://debatebot-client-git-develop-hrf-innovation-lab.vercel.app",
+        "https://dbapi.hrfinnovation.org",
         "https://dbapi-stag.hrfinnovation.org",
-        "https://debatebot-client.vercel.app"
+        "https://debatebot-client.vercel.app",
+        "https://debatebot.hrfinnovation.org",
+        "https://debatebot-client-git-develop-hrf-innovation-lab.vercel.app"
     ],
     allow_credentials=True,
     allow_methods=["*"],
