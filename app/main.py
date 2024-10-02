@@ -16,8 +16,8 @@ app.include_router(router)
 # Hardcoded Auth0 Configuration
 AUTH0_BASE_URL = os.getenv("AUTH0_DOMAIN", "https://hrf-alt-dev.us.auth0.com/")
 AUTH0_M2M_AUDIENCE = os.getenv("AUTH0_AUDIENCE", "https://dbapi-stag.hrfinnovation.org/api/v2/")
-AUTH0_CLIENT_ID = 'WMgfTk583qBpRC9bWDohMH8VOyWo2m2W'  
-AUTH0_CLIENT_SECRET = 'UmO8p22fzh_pciTMQXT-nCEZpZzdXy9_iteR2l9UYvPpNV1qvP1l1N-5jvpDpPWD'  
+AUTH0_M2M_CLIENT_ID = os.getenv("AUTH0_CLIENT_ID")
+AUTH0_M2M_CLIENT_SECRET = os.getenv("AUTH0_CLIENT_SECRET")
 
 # Add trusted hosts
 app.add_middleware(
