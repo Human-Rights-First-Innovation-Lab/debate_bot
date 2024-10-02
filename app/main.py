@@ -6,6 +6,7 @@ from jose import JWTError, jwt
 from authlib.integrations.starlette_client import OAuth
 import requests
 from app.endpoints import router
+import os
 
 # Initialize FastAPI app
 app = FastAPI()
