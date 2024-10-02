@@ -1,7 +1,7 @@
 from pydantic import BaseSettings
 from dotenv import load_dotenv
 import os
-
+import openai
 # Load environment variables from the .env file located in the /app directory
 #load_dotenv(dotenv_path="/app/.env")
 
@@ -9,7 +9,6 @@ import os
 openai_api_key = os.getenv("OPENAI_API_KEY")
 
 # Set the API key for the OpenAI client
-import openai
 openai.api_key = openai_api_key
 
 MYSQL_DATABASE = 'debatebot_prod'
@@ -25,7 +24,7 @@ class Settings(BaseSettings):
     mysql_host: str = os.getenv("MYSQL_HOST")
     mysql_port: int = int(os.getenv("MYSQL_PORT", 3306))
 
-    mysql_database: str = "debatebot_dev"
+    mysql_database: str = "debatebot_prod"
 
 
     # OpenAI settings
