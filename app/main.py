@@ -8,6 +8,11 @@ import requests
 from app.endpoints import router
 import os
 
+
+# Correctly load the .env file
+dotenv_path = ".env"
+load_dotenv(dotenv_path=dotenv_path)
+
 # Initialize FastAPI app
 app = FastAPI()
 
