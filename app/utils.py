@@ -40,7 +40,7 @@ else:
 # Initialize OpenAI API key
 #openai.api_key = os.getenv('OPENAI_API_KEY')
 
-MYSQL_DATABASE = 'debatebot_dev'
+MYSQL_DATABASE = 'debatebot_prod'
 
 # Database Configuration
 MYSQL_USER = os.getenv('MYSQL_USER')

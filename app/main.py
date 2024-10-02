@@ -13,29 +13,26 @@ app = FastAPI()
 app.include_router(router)
 
 # Hardcoded Auth0 Configuration
-AUTH0_BASE_URL = 'https://hrf-alt-dev.us.auth0.com'
-AUTH0_M2M_AUDIENCE = 'https://dbapi-stag.hrfinnovation.org/api/v2/'
-AUTH0_CLIENT_ID = 'WMgfTk583qBpRC9bWDohMH8VOyWo2m2W'  
-AUTH0_CLIENT_SECRET = 'UmO8p22fzh_pciTMQXT-nCEZpZzdXy9_iteR2l9UYvPpNV1qvP1l1N-5jvpDpPWD'  
+AUTH0_BASE_URL = os.getenv("AUTH0_DOMAIN", "https://hrf-alt-dev.us.auth0.com/")
+AUTH0_M2M_AUDIENCE = os.getenv("AUTH0_AUDIENCE", "https://dbapi-stag.hrfinnovation.org/api/v2/")
+AUTH0_CLIENT_ID = os.getenv("AUTH0_CLIENT_ID")
+AUTH0_CLIENT_SECRET = os.getenv("AUTH0_CLIENT_SECRET")
 
 # Add trusted hosts
 app.add_middleware(
     TrustedHostMiddleware,
-    allowed_hosts=["dbapi-stag.hrfinnovation.org", "*.dbapi-stag.hrfinnovation.org", "localhost"]
-  
+    allowed_hosts=["dbapi-stag.hrfinnovation.org", "*.dbapi-stag.hrfinnovation.org", "debatebot.hrfinnovation.org", "*.debatebot.hrfinnovation.org""localhost"],
+)  
+
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://dbapi.hrfinnovation.org",  # Main Branch FE
-        "https://dbapi-stag.hrfinnovation.org",  # Dev branch FE
-        "https://debatebot-client.vercel.app",
-        "https://debatebot-client.vercel.app/",
-        "https://debatebot.hrfinnovation.org/",
-        "https://debatebot.hrfinnovation.org",
-        "https://debatebot-client-git-develop-hrf-innovation-lab.vercel.app",
+        "https://dbapi.hrfinnovation.org",
         "https://dbapi-stag.hrfinnovation.org",
-        "https://debatebot-client.vercel.app"
+        "https://debatebot-client.vercel.app",
+        "https://debatebot.hrfinnovation.org",
+        "https://debatebot-client-git-develop-hrf-innovation-lab.vercel.app"
     ],
     allow_credentials=True,
     allow_methods=["*"],

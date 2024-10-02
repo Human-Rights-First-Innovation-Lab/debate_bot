@@ -64,6 +64,9 @@ ALGORITHMS = ["RS256"]
 if not AUTH0_DOMAIN or not AUTH0_AUDIENCE:
     raise ValueError("Missing Auth0 environment variables. Ensure they are set properly.")
 
+if not AUTH0_DOMAIN or not AUTH0_AUDIENCE:
+    raise ValueError("Missing Auth0 environment variables. Ensure they are set properly.")
+
 # Fetch Auth0 JWKS for verifying RS256 tokens
 jwks_cache = None
 
