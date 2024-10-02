@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from jose import JWTError, jwt
 from authlib.integrations.starlette_client import OAuth
 import requests
+from dotenv import load_dotenv
 from app.endpoints import router
 import os
 
