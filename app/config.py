@@ -15,7 +15,7 @@ MYSQL_DATABASE = 'debatebot_prod'
 
 class Settings(BaseSettings):
     # App settings
-    app_name: str = "Debate Bot"
+    app_name: str = "FastAPI Application"
     debug: bool = True
 
     # Database settings
