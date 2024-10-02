@@ -11,7 +11,7 @@ openai_api_key = os.getenv("OPENAI_API_KEY")
 # Set the API key for the OpenAI client
 openai.api_key = openai_api_key
 
-MYSQL_DATABASE = 'debatebot_dev'
+MYSQL_DATABASE = 'debatebot_prod'
 
 class Settings(BaseSettings):
     # App settings
@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     mysql_host: str = os.getenv("MYSQL_HOST")
     mysql_port: int = int(os.getenv("MYSQL_PORT", 3306))
 
-    mysql_database: str = "debatebot_dev"
+    mysql_database: str = "debatebot_prod"
 
 
     # OpenAI settings
