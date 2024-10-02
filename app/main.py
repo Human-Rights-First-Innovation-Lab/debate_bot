@@ -28,7 +28,9 @@ AUTH0_CLIENT_SECRET = os.getenv("AUTH0_CLIENT_SECRET")
 # Add trusted hosts
 app.add_middleware(
     TrustedHostMiddleware,
+
     allowed_hosts=["dbapi-stag.hrfinnovation.org", "*.dbapi-stag.hrfinnovation.org", "debatebot.hrfinnovation.org", "dbapi.hrfinnovation.org", "*.dbapi.hrfinnovation.org","*.debatebot.hrfinnovation.org","localhost"],
+
 )  
 
 # Add CORS middleware
@@ -42,6 +44,7 @@ app.add_middleware(
         "https://debatebot-client-git-develop-hrf-innovation-lab.vercel.app",
         "https://debatebot-stag.hrfinnovation.org/",
         "https://debatebot-stag.hrfinnovation.org"
+
     ],
     allow_credentials=True,
     allow_methods=["*"],
