@@ -210,13 +210,13 @@ async def generate_response_endpoint(request: Request, req_body: QueryRequest, t
         best_response_ferguson = generate_response(query, best_retrieved_texts_ferguson) if best_retrieved_texts_ferguson else "No suitable chunk found for Ferguson."
 
         # Flag non-answers from candidates
-        if "i do not have" in best_response_reichert.lower() or "i do not have" in best_response_ferguson.lower():
-            flag = {
-                "query_id": query_id,
-                "message": "One or both of these candidates have not discussed this topic, therefore we are unable to provide an answer at this time."
-            }
-            return JSONResponse(content=flag)
-        
+        if "i do not have" in best_response_reichert.lower():
+            best_response_reichert = "This candidate has not spoken publicly on this topic, therefore we are unable to give a response at this time."
+
+        if "i do not have" in best_response_ferguson.lower():
+            best_response_ferguson = "This candidate has not spoken publicly on this topic, therefore we are unable to give a response at this time."
+
+
         # Prepare the dictionary response
         response_data_dict = {
             "query_id": query_id,
@@ -224,11 +224,11 @@ async def generate_response_endpoint(request: Request, req_body: QueryRequest, t
             "responses": {
                 "reichert": {
                     "response": best_response_reichert,
-                    "source_url": source_url_reichert,
+                    "source_url": source_url_reichert if "has not spoken publicly" not in best_response_reichert else "No URL found",
                 },
                 "ferguson": {
                     "response": best_response_ferguson,
-                    "source_url": source_url_ferguson,
+                    "source_url": source_url_ferguson if "has not spoken publicly" not in best_response_ferguson else "No URL found",
                 }
             }
         }
