@@ -50,7 +50,7 @@ class StatsResponseModel(BaseModel):
     participant_party: Dict[str, int]
     participant_age: Dict[str, int]
     participant_gender: Dict[str, int]
-    top_categories: Dict[st]
+    top_categories: Dict[str]
 
 class SaveRequest(BaseModel):
     query_id: int
