@@ -45,6 +45,13 @@ class ResponseModel(BaseModel):
     session_id: Optional[str]  # Make this optional if it's not always present
     responses: Dict[str, Dict[str, str]]
 
+class StatsResponseModel(BaseModel):
+    candidate_wins: Dict [str, float]
+    participant_party: Dict[str, int]
+    participant_age: Dict[str, int]
+    participant_gender: Dict[str, int]
+    top_categories: Dict[st]
+
 class SaveRequest(BaseModel):
     query_id: int
     candidate_id: int
@@ -269,8 +276,8 @@ async def generate_response_endpoint(request: Request, req_body: QueryRequest, t
         )
 
 # Stats endpoint
-@router.get("/stats")
-async def stats_handler():
+@router.get("/stats", response_model=StatsResponseModel)
+async def stats_handler(token_payload: dict = Depends(verify_rs256_token)):
     return {
         "candidate_wins": get_winner_percents(),
         "participant_party": get_participant_parties(),
