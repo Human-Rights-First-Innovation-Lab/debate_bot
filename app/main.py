@@ -21,7 +21,7 @@ app.include_router(router)
 
 # Hardcoded Auth0 Configuration
 AUTH0_BASE_URL = 'https://hrf-alt-dev.us.auth0.com'
-AUTH0_M2M_AUDIENCE ='https://dbapi-stag.hrfinnovation.org/api/v2/''
+AUTH0_M2M_AUDIENCE ='https://dbapi-stag.hrfinnovation.org/api/v2/'
 AUTH0_CLIENT_ID = os.getenv("AUTH0_CLIENT_ID")
 AUTH0_CLIENT_SECRET = os.getenv("AUTH0_CLIENT_SECRET")
 
