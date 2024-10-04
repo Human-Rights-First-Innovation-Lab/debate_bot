@@ -47,10 +47,10 @@ class ResponseModel(BaseModel):
 
 class StatsResponseModel(BaseModel):
     candidate_wins: Dict [str, float]
-    participant_party: Dict[str, int]
-    participant_age: Dict[str, int]
-    participant_gender: Dict[str, int]
-    top_categories: Dict[str, str]
+    participant_party: Dict[str, Union[int, float]]
+    participant_age: Dict[str, Union[int, float]]
+    participant_gender: Dict[str, Union[int, float]]
+    top_categories: Union[Dict[str, int], List[Tuple[Union[str, None], int]]] 
 
 class SaveRequest(BaseModel):
     query_id: int
