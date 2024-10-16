@@ -1,13 +1,14 @@
 import requests
 import logging
 import traceback
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Tuple, Union
 import httpx
 from fastapi import APIRouter, HTTPException, Request, Depends
 from jose import jwt, JWTError
 from pydantic import BaseModel
 import os
 from datetime import datetime
+import zlib
 from app.utils import (
     insert_into_database,
     select_from_database,
@@ -28,6 +29,18 @@ from fastapi.responses import JSONResponse
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
+MAX_PAYLOAD_SIZE = 256000  # 250KB
+
+def validate_payload_size(payload):
+    if len(payload) > MAX_PAYLOAD_SIZE:
+        raise ValueError("Payload size exceeds the maximum allowed limit of 250KB")
+
+def validate_decompressed_payload_size(compressed_payload):
+    decompressed_payload = zlib.decompress(compressed_payload)
+    if len(decompressed_payload) > MAX_PAYLOAD_SIZE:
+        raise ValueError("Decompressed payload size exceeds the maximum allowed limit of 250KB")
+    return decompressed_payload
+
 # Initialize FastAPI router
 router = APIRouter()
 
@@ -44,6 +57,13 @@ class ResponseModel(BaseModel):
     query_id: int
     session_id: Optional[str]  # Make this optional if it's not always present
     responses: Dict[str, Dict[str, str]]
+
+class StatsResponseModel(BaseModel):
+    candidate_wins: Dict [str, float]
+    participant_party: Dict[str, Union[int, float]]
+    participant_age: Dict[str, Union[int, float]]
+    participant_gender: Dict[str, Union[int, float]]
+    top_categories: Union[Dict[str, int], List[Tuple[Union[str, None], int]]] 
 
 class SaveRequest(BaseModel):
     query_id: int
@@ -154,7 +174,6 @@ async def start_session(request: Request, token_payload: dict = Depends(verify_r
         logger.error(f"Failed to start session: {e}")
         raise HTTPException(status_code=500, detail="An error occurred while starting the session")
 
-
 # Generate response endpoint
 @router.post("/generate-response/", response_model=ResponseModel)
 async def generate_response_endpoint(request: Request, req_body: QueryRequest, token_payload: dict = Depends(verify_rs256_token)):
@@ -216,7 +235,6 @@ async def generate_response_endpoint(request: Request, req_body: QueryRequest, t
         if "i do not have" in best_response_ferguson.lower():
             best_response_ferguson = "This candidate has not spoken publicly on this topic, therefore we are unable to give a response at this time."
 
-
         # Prepare the dictionary response
         response_data_dict = {
             "query_id": query_id,
@@ -269,8 +287,8 @@ async def generate_response_endpoint(request: Request, req_body: QueryRequest, t
         )
 
 # Stats endpoint
-@router.get("/stats")
-async def stats_handler():
+@router.get("/stats", response_model=StatsResponseModel)
+async def stats_handler(token_payload: dict = Depends(verify_rs256_token)):
     return {
         "candidate_wins": get_winner_percents(),
         "participant_party": get_participant_parties(),

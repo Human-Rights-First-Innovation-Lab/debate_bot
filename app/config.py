@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     auth0_client_id: str = os.getenv("AUTH0_CLIENT_ID")
     auth0_client_secret: str = os.getenv("AUTH0_CLIENT_SECRET")
     auth0_audience: str = os.getenv("AUTH0_AUDIENCE", "https://dbapi.hrfinnovation.org/api/v2/")
-
+    
     class Config:
         env_file = ".env"
 
