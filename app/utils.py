@@ -6,6 +6,7 @@ import json
 from jose import jwt, JWTError
 import numpy as np
 from scipy.spatial.distance import cosine
+from sklearn.metrics.pairwise import cosine_similarity
 import tiktoken  # OpenAI's tokenizer
 import pandas as pd
 from dotenv import load_dotenv
