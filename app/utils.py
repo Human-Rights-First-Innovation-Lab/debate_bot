@@ -259,6 +259,7 @@ def find_best_texts(query_embedding, pkl_filenames, txt_folder_path, n):
     best_filenames = []
     best_similarities = []
     best_urls = []  # List to store URLs
+    best_timestamps = []  # List to store timestamps
 
     # Dictionary to cache URLs extracted from .txt files
     url_cache = {}
@@ -269,10 +270,10 @@ def find_best_texts(query_embedding, pkl_filenames, txt_folder_path, n):
             vectorized_chunks = pickle.load(file)
 
             # Process each chunk in the .pkl file
-            for embedding, chunk, chunk_filenames, chunk_urls in vectorized_chunks:
+            for embedding, chunk, chunk_filenames, chunk_urls, chunk_timestamps in vectorized_chunks:
                 # Extract the corresponding .txt filename
                 txt_filename = chunk_filenames[0]  # Assuming chunk_filenames contains the original .txt filename
-                
+
                 # Compute similarity and store the best results
                 similarity_score = cosine(query_embedding, embedding)
                 if similarity_score > 0:
@@ -280,6 +281,7 @@ def find_best_texts(query_embedding, pkl_filenames, txt_folder_path, n):
                     best_retrieved_texts.append(chunk[0])
                     best_filenames.append(chunk_filenames[0])
                     best_urls.append(chunk_urls[0])  # Use the URL from the .pkl file
+                    best_timestamps.append(chunk_timestamps[0] if chunk_timestamps else None)  # Add timestamps if available
 
     # Combine results into a DataFrame and sort by similarity
     text_similarities = pd.DataFrame(
@@ -287,17 +289,19 @@ def find_best_texts(query_embedding, pkl_filenames, txt_folder_path, n):
             'texts': best_retrieved_texts,
             'filenames': best_filenames,
             'similarities': best_similarities,
-            'urls': best_urls  # Include URLs in the DataFrame
+            'urls': best_urls,  # Include URLs in the DataFrame
+            'timestamps': best_timestamps  # Include timestamps in the DataFrame
         }
     )
 
-    result = text_similarities.sort_values('similarities', ascending=True)
+    result = text_similarities.sort_values('similarities', ascending=False)  # Sort by descending similarity
 
     # Print the top results for debugging
     print(result.head())
 
     # Return the top 'n' results
     return result.head(n)
+
 
 # Function to compute scoring metrics
 def get_scoring_metrics(query, response, contexts):
