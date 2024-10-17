@@ -209,7 +209,9 @@ async def generate_response_endpoint(request: Request, req_body: QueryRequest, t
             'sources/reichert',
             4
         )
-        best_retrieved_texts_reichert = best_texts_df_reichert["texts"].tolist()
+
+        # Handle empty retrieval for Reichert
+        best_retrieved_texts_reichert = best_texts_df_reichert["texts"].tolist() if not best_texts_df_reichert.empty else []
         source_url_reichert = best_texts_df_reichert["urls"].tolist()[0] if not best_texts_df_reichert.empty else "No URL found"
 
         # Generate a response for Reichert
@@ -222,7 +224,9 @@ async def generate_response_endpoint(request: Request, req_body: QueryRequest, t
             'sources/ferguson',
             4
         )
-        best_retrieved_texts_ferguson = best_texts_df_ferguson["texts"].tolist()
+
+        # Handle empty retrieval for Ferguson
+        best_retrieved_texts_ferguson = best_texts_df_ferguson["texts"].tolist() if not best_texts_df_ferguson.empty else []
         source_url_ferguson = best_texts_df_ferguson["urls"].tolist()[0] if not best_texts_df_ferguson.empty else "No URL found"
 
         # Generate a response for Ferguson
@@ -250,6 +254,13 @@ async def generate_response_endpoint(request: Request, req_body: QueryRequest, t
                 }
             }
         }
+
+        return JSONResponse(content=response_data_dict)
+
+    except Exception as e:
+        logger.error(f"Error generating response: {e}")
+        raise HTTPException(status_code=500, detail="An error occurred while generating the response.")
+
 
         # Save responses to the database
         save_to_db({
