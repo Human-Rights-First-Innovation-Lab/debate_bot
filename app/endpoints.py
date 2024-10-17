@@ -175,7 +175,6 @@ async def start_session(request: Request, token_payload: dict = Depends(verify_r
         raise HTTPException(status_code=500, detail="An error occurred while starting the session")
 
 # Generate response endpoint
-# Generate response endpoint
 @router.post("/generate-response/", response_model=ResponseModel)
 async def generate_response_endpoint(request: Request, req_body: QueryRequest, token_payload: dict = Depends(verify_rs256_token)):
     try:
@@ -210,14 +209,8 @@ async def generate_response_endpoint(request: Request, req_body: QueryRequest, t
             'sources/reichert',
             4
         )
-
         best_retrieved_texts_reichert = best_texts_df_reichert["texts"].tolist()
-        best_timestamp_reichert = best_texts_df_reichert["timestamps"].tolist()[0] if not best_texts_df_reichert.empty else None
         source_url_reichert = best_texts_df_reichert["urls"].tolist()[0] if not best_texts_df_reichert.empty else "No URL found"
-
-        # Append timestamp to the source URL
-        if best_timestamp_reichert:
-            source_url_reichert += f"&t={best_timestamp_reichert.replace(':', 'm')}s"
 
         # Generate a response for Reichert
         best_response_reichert = generate_response(query, best_retrieved_texts_reichert) if best_retrieved_texts_reichert else "No suitable chunk found for Reichert."
@@ -229,14 +222,8 @@ async def generate_response_endpoint(request: Request, req_body: QueryRequest, t
             'sources/ferguson',
             4
         )
-
         best_retrieved_texts_ferguson = best_texts_df_ferguson["texts"].tolist()
-        best_timestamp_ferguson = best_texts_df_ferguson["timestamps"].tolist()[0] if not best_texts_df_ferguson.empty else None
         source_url_ferguson = best_texts_df_ferguson["urls"].tolist()[0] if not best_texts_df_ferguson.empty else "No URL found"
-
-        # Append timestamp to the source URL
-        if best_timestamp_ferguson:
-            source_url_ferguson += f"&t={best_timestamp_ferguson.replace(':', 'm')}s"
 
         # Generate a response for Ferguson
         best_response_ferguson = generate_response(query, best_retrieved_texts_ferguson) if best_retrieved_texts_ferguson else "No suitable chunk found for Ferguson."
@@ -263,13 +250,6 @@ async def generate_response_endpoint(request: Request, req_body: QueryRequest, t
                 }
             }
         }
-
-        return JSONResponse(content=response_data_dict)
-
-    except Exception as e:
-        logger.error(f"Error generating response: {e}")
-        raise HTTPException(status_code=500, detail="An error occurred while generating the response.")
-
 
         # Save responses to the database
         save_to_db({
