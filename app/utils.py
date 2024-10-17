@@ -234,6 +234,19 @@ def get_openai_embedding(text, model="text-embedding-3-small"):
         print(f"Error generating embeddings: {e}")
         return None
 
+def extract_timestamps(text):
+    """
+    Extract timestamps from the given text.
+    Supports formats like HH:MM:SS or MM:SS.
+    """
+    # Regex pattern for matching timestamps (HH:MM:SS or MM:SS)
+    timestamp_pattern = r'\b(?:\d{1,2}:)?\d{1,2}:\d{2}\b'
+
+    # Use regex to find all timestamps in the text
+    timestamps = re.findall(timestamp_pattern, text)
+
+    return timestamps if timestamps else None
+
 # Function to extract URL from the top of a text file
 def extract_url_from_txt(file_path):
     try:
@@ -254,34 +267,45 @@ def extract_url_from_txt(file_path):
         return None
 
 # Function to find the best matching texts based on cosine similarity
-def find_best_texts(query_embedding, pkl_filenames, txt_folder_path, n):
+def find_best_texts(query_embedding, pkl_filenames, txt_folder_path, n=5):
     best_retrieved_texts = []
     best_filenames = []
     best_similarities = []
     best_urls = []  # List to store URLs
     best_timestamps = []  # List to store timestamps
 
-    # Dictionary to cache URLs extracted from .txt files
+    # Dictionary to cache URLs extracted from .txt files (if needed for optimization)
     url_cache = {}
 
     # Process each .pkl file and retrieve texts
     for pkl_filename in pkl_filenames:
-        with open(pkl_filename, 'rb') as file:
-            vectorized_chunks = pickle.load(file)
+        try:
+            with open(pkl_filename, 'rb') as file:
+                vectorized_chunks = pickle.load(file)
 
-            # Process each chunk in the .pkl file
-            for embedding, chunk, chunk_filenames, chunk_urls, chunk_timestamps in vectorized_chunks:
-                # Extract the corresponding .txt filename
-                txt_filename = chunk_filenames[0]  # Assuming chunk_filenames contains the original .txt filename
+                # Process each chunk in the .pkl file
+                for embedding, chunk, chunk_filenames, chunk_urls, chunk_timestamps in vectorized_chunks:
+                    # Extract the corresponding .txt filename
+                    txt_filename = chunk_filenames[0]  # Assuming chunk_filenames contains the original .txt filename
 
-                # Compute similarity and store the best results
-                similarity_score = cosine(query_embedding, embedding)
-                if similarity_score > 0:
-                    best_similarities.append(similarity_score)
-                    best_retrieved_texts.append(chunk[0])
-                    best_filenames.append(chunk_filenames[0])
-                    best_urls.append(chunk_urls[0])  # Use the URL from the .pkl file
-                    best_timestamps.append(chunk_timestamps[0] if chunk_timestamps else None)  # Add timestamps if available
+                    # Ensure embeddings are valid and of the same shape
+                    if len(embedding) != len(query_embedding):
+                        print(f"Skipping chunk due to embedding size mismatch in {txt_filename}")
+                        continue
+
+                    # Compute cosine similarity
+                    similarity_score = cosine_similarity([query_embedding], [embedding])[0][0]  # Get the similarity score
+                    
+                    # Filter for a reasonable similarity threshold, e.g., only include if similarity > 0.5
+                    if similarity_score > 0.5:  # Adjust threshold as needed
+                        best_similarities.append(similarity_score)
+                        best_retrieved_texts.append(chunk[0])  # Add the chunk of text
+                        best_filenames.append(chunk_filenames[0])  # Track the filename
+                        best_urls.append(chunk_urls[0])  # Use the URL from the .pkl file
+                        best_timestamps.append(chunk_timestamps[0] if chunk_timestamps else None)  # Add timestamps if available
+
+        except Exception as e:
+            print(f"Error processing {pkl_filename}: {e}")
 
     # Combine results into a DataFrame and sort by similarity
     text_similarities = pd.DataFrame(
@@ -294,10 +318,15 @@ def find_best_texts(query_embedding, pkl_filenames, txt_folder_path, n):
         }
     )
 
-    result = text_similarities.sort_values('similarities', ascending=False)  # Sort by descending similarity
+    if text_similarities.empty:
+        print("No relevant texts found for the query.")
+        return text_similarities
+
+    # Sort results by descending similarity
+    result = text_similarities.sort_values('similarities', ascending=False)
 
     # Print the top results for debugging
-    print(result.head())
+    print(result.head(n))
 
     # Return the top 'n' results
     return result.head(n)
