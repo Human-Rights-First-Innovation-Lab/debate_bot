@@ -304,33 +304,7 @@ def find_best_texts(query_embedding, pkl_filenames, txt_folder_path, n):
 
     # Return the top 'n' results
     return result.head(n)
-
-'''# After finding best texts
-best_texts_df_ferguson = best_texts_df_ferguson.reset_index(drop=True)
-
-if not best_texts_df_ferguson.empty:
-    best_retrieved_texts_ferguson = best_texts_df_ferguson["texts"].tolist()
-    source_url_ferguson = embed_timestamp_in_url(
-        best_texts_df_ferguson.iloc[0]["urls"],
-        best_texts_df_ferguson.iloc[0]["timestamps"]
-    )
-else:
-    best_retrieved_texts_ferguson = []
-    source_url_ferguson = "No URL found"
-
-# After finding best texts
-best_texts_df_reichert = best_texts_df_reichert.reset_index(drop=True)
-
-if not best_texts_df_reichert.empty:
-    best_retrieved_texts_reichert = best_texts_df_reichert["texts"].tolist()
-    source_url_reichert = embed_timestamp_in_url(
-        best_texts_df_reichert.iloc[0]["urls"],
-        best_texts_df_reichert.iloc[0]["timestamps"]
-    )
-else:
-    best_retrieved_texts_reichert = []
-    source_url_reichert = "No URL found"'''
-    
+  
 # Function to compute scoring metrics
 def get_scoring_metrics(query, response, contexts):
     data = {
