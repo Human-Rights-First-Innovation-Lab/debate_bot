@@ -22,7 +22,8 @@ from app.utils import (
     get_participant_ages,
     get_top_categories,
     get_winner_percents,
-    validate_token
+    validate_token,
+    embed_timestamp_in_url
 )
 from fastapi.responses import JSONResponse
 
