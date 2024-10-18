@@ -236,10 +236,13 @@ async def generate_response_endpoint(request: Request, req_body: QueryRequest, t
                 # Convert timestamp to seconds
                 h, m, s = 0, 0, 0
                 parts = timestamp.split(':')
+                parts = [int(part) for part in parts]
                 if len(parts) == 3:
-                    h, m, s = int(parts[0]), int(parts[1]), int(parts[2])
+                    h, m, s = parts
                 elif len(parts) == 2:
-                    m, s = int(parts[0]), int(parts[1])
+                    m, s = parts
+                elif len(parts) == 1:
+                    s = parts
                 total_seconds = h * 3600 + m * 60 + s
 
                 # Check if URL already has query parameters
