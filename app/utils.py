@@ -254,6 +254,27 @@ def extract_url_from_txt(file_path):
         print(f"Error reading URL from {file_path}: {e}")
         return None
 
+def embed_timestamp_in_url(url, timestamp):
+    if url and timestamp and "youtube.com" in url:
+        # Convert timestamp to seconds
+        h, m, s = 0, 0, 0
+        parts = timestamp.strip().split(':')
+        parts = [int(part) for part in parts]
+        if len(parts) == 3:
+            h, m, s = parts
+        elif len(parts) == 2:
+            m, s = parts
+        elif len(parts) == 1:
+            s = parts[0]
+        total_seconds = h * 3600 + m * 60 + s
+
+        # Check if URL already has query parameters
+        if '?' in url:
+            return f"{url}&t={total_seconds}s"
+        else:
+            return f"{url}?t={total_seconds}s"
+    return url
+    
 # Function to find the best matching texts based on cosine similarity
 def find_best_texts(query_embedding, pkl_filenames, txt_folder_path, n):
     embeddings = []
