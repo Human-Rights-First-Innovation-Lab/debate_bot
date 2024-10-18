@@ -305,7 +305,7 @@ def find_best_texts(query_embedding, pkl_filenames, txt_folder_path, n):
     # Return the top 'n' results
     return result.head(n)
 
-# After finding best texts
+'''# After finding best texts
 best_texts_df_ferguson = best_texts_df_ferguson.reset_index(drop=True)
 
 if not best_texts_df_ferguson.empty:
@@ -329,7 +329,7 @@ if not best_texts_df_reichert.empty:
     )
 else:
     best_retrieved_texts_reichert = []
-    source_url_reichert = "No URL found"
+    source_url_reichert = "No URL found"'''
     
 # Function to compute scoring metrics
 def get_scoring_metrics(query, response, contexts):
