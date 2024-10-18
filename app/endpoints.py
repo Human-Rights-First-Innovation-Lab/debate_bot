@@ -202,6 +202,7 @@ async def generate_response_endpoint(request: Request, req_body: QueryRequest, t
         if query_embedding is None:
             raise HTTPException(status_code=500, detail="Failed to generate query embedding.")
 
+        ### **Retrieve and process texts for Reichert**
         # Retrieve texts and metadata for Reichert
         best_texts_df_reichert = find_best_texts(
             query_embedding,
@@ -209,13 +210,26 @@ async def generate_response_endpoint(request: Request, req_body: QueryRequest, t
             'sources/reichert',
             4
         )
-        best_retrieved_texts_reichert = best_texts_df_reichert["texts"].tolist()
-        source_url_reichert = best_texts_df_reichert["urls"].tolist()[0] if not best_texts_df_reichert.empty else "No URL found"
-        timestamp_reichert = best_texts_df_reichert["timestamps"].tolist()[0] if not best_texts_df_reichert.empty else None
+
+        # Process best_texts_df_reichert
+        if not best_texts_df_reichert.empty:
+            best_texts_df_reichert = best_texts_df_reichert.reset_index(drop=True)
+            best_retrieved_texts_reichert = best_texts_df_reichert["texts"].tolist()
+            source_url_reichert = embed_timestamp_in_url(
+                best_texts_df_reichert.iloc[0]["urls"],
+                best_texts_df_reichert.iloc[0]["timestamps"]
+            )
+        else:
+            best_retrieved_texts_reichert = []
+            source_url_reichert = "No URL found"
 
         # Generate a response for Reichert
-        best_response_reichert = generate_response(query, best_retrieved_texts_reichert) if best_retrieved_texts_reichert else "This candidate has not spoken publicly on this topic, therefore we are unable to give a response at this time."
+        if best_retrieved_texts_reichert:
+            best_response_reichert = generate_response(query, best_retrieved_texts_reichert)
+        else:
+            best_response_reichert = "This candidate has not spoken publicly on this topic, therefore we are unable to give a response at this time."
 
+        ### **Retrieve and process texts for Ferguson**
         # Retrieve texts and metadata for Ferguson
         best_texts_df_ferguson = find_best_texts(
             query_embedding,
@@ -223,38 +237,30 @@ async def generate_response_endpoint(request: Request, req_body: QueryRequest, t
             'sources/ferguson',
             4
         )
-        best_retrieved_texts_ferguson = best_texts_df_ferguson["texts"].tolist()
-        source_url_ferguson = best_texts_df_ferguson["urls"].tolist()[0] if not best_texts_df_ferguson.empty else "No URL found"
-        timestamp_ferguson = best_texts_df_ferguson["timestamps"].tolist()[0] if not best_texts_df_ferguson.empty else None
+
+        # Process best_texts_df_ferguson
+        if not best_texts_df_ferguson.empty:
+            best_texts_df_ferguson = best_texts_df_ferguson.reset_index(drop=True)
+            best_retrieved_texts_ferguson = best_texts_df_ferguson["texts"].tolist()
+            source_url_ferguson = embed_timestamp_in_url(
+                best_texts_df_ferguson.iloc[0]["urls"],
+                best_texts_df_ferguson.iloc[0]["timestamps"]
+            )
+        else:
+            best_retrieved_texts_ferguson = []
+            source_url_ferguson = "No URL found"
 
         # Generate a response for Ferguson
-        best_response_ferguson = generate_response(query, best_retrieved_texts_ferguson) if best_retrieved_texts_ferguson else "This candidate has not spoken publicly on this topic, therefore we are unable to give a response at this time."
+        if best_retrieved_texts_ferguson:
+            best_response_ferguson = generate_response(query, best_retrieved_texts_ferguson)
+        else:
+            best_response_ferguson = "This candidate has not spoken publicly on this topic, therefore we are unable to give a response at this time."
 
-        # Modify the source URLs to include timestamps if available
-        def embed_timestamp_in_url(url, timestamp):
-            if url and timestamp and "youtube.com" in url:
-                # Convert timestamp to seconds
-                h, m, s = 0, 0, 0
-                parts = timestamp.split(':')
-                parts = [int(part) for part in parts]
-                if len(parts) == 3:
-                    h, m, s = parts
-                elif len(parts) == 2:
-                    m, s = parts
-                elif len(parts) == 1:
-                    s = parts
-                total_seconds = h * 3600 + m * 60 + s
-
-                # Check if URL already has query parameters
-                if '?' in url:
-                    return f"{url}&t={total_seconds}s"
-                else:
-                    return f"{url}?t={total_seconds}s"
-            return url
-
-        # Embed timestamps into URLs
-        source_url_reichert = embed_timestamp_in_url(source_url_reichert, timestamp_reichert)
-        source_url_ferguson = embed_timestamp_in_url(source_url_ferguson, timestamp_ferguson)
+        # Flag non-answers from candidates
+        if "has not spoken publicly" in best_response_reichert.lower():
+            source_url_reichert = "No URL found"
+        if "has not spoken publicly" in best_response_ferguson.lower():
+            source_url_ferguson = "No URL found"
 
         # Prepare the dictionary response
         response_data_dict = {
@@ -263,11 +269,11 @@ async def generate_response_endpoint(request: Request, req_body: QueryRequest, t
             "responses": {
                 "reichert": {
                     "response": best_response_reichert,
-                    "source_url": source_url_reichert if "has not spoken publicly" not in best_response_reichert else "No URL found",
+                    "source_url": source_url_reichert,
                 },
                 "ferguson": {
                     "response": best_response_ferguson,
-                    "source_url": source_url_ferguson if "has not spoken publicly" not in best_response_ferguson else "No URL found",
+                    "source_url": source_url_ferguson,
                 }
             }
         }
@@ -277,6 +283,7 @@ async def generate_response_endpoint(request: Request, req_body: QueryRequest, t
     except Exception as e:
         logger.error(f"Error generating response: {e}")
         raise HTTPException(status_code=500, detail="An error occurred while generating the response.")
+
 
         # Save responses to the database
         save_to_db({
