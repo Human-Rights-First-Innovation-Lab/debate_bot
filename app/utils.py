@@ -6,6 +6,7 @@ import json
 from jose import jwt, JWTError
 import numpy as np
 from scipy.spatial.distance import cosine
+from sklearn.metrics.pairwise import cosine_similarity
 import tiktoken  # OpenAI's tokenizer
 import pandas as pd
 from dotenv import load_dotenv
@@ -255,13 +256,11 @@ def extract_url_from_txt(file_path):
 
 # Function to find the best matching texts based on cosine similarity
 def find_best_texts(query_embedding, pkl_filenames, txt_folder_path, n):
-    best_retrieved_texts = []
-    best_filenames = []
-    best_similarities = []
-    best_urls = []  # List to store URLs
-
-    # Dictionary to cache URLs extracted from .txt files
-    url_cache = {}
+    embeddings = []
+    texts = []
+    filenames = []
+    urls = []
+    timestamps = []
 
     # Process each .pkl file and retrieve texts
     for pkl_filename in pkl_filenames:
@@ -269,32 +268,39 @@ def find_best_texts(query_embedding, pkl_filenames, txt_folder_path, n):
             vectorized_chunks = pickle.load(file)
 
             # Process each chunk in the .pkl file
-            for embedding, chunk, chunk_filenames, chunk_urls in vectorized_chunks:
-                # Extract the corresponding .txt filename
-                txt_filename = chunk_filenames[0]  # Assuming chunk_filenames contains the original .txt filename
-                
-                # Compute similarity and store the best results
-                similarity_score = cosine(query_embedding, embedding)
-                if similarity_score > 0:
-                    best_similarities.append(similarity_score)
-                    best_retrieved_texts.append(chunk[0])
-                    best_filenames.append(chunk_filenames[0])
-                    best_urls.append(chunk_urls[0])  # Use the URL from the .pkl file
+            for item in vectorized_chunks:
+                embedding = item['embedding']
+                text = item['text']
+                filename = item['filename']
+                url = item['url']
+                timestamp = item.get('timestamp')  # Use .get() to handle missing timestamps
 
-    # Combine results into a DataFrame and sort by similarity
-    text_similarities = pd.DataFrame(
-        {
-            'texts': best_retrieved_texts,
-            'filenames': best_filenames,
-            'similarities': best_similarities,
-            'urls': best_urls  # Include URLs in the DataFrame
-        }
-    )
+                embeddings.append(embedding)
+                texts.append(text)
+                filenames.append(filename)
+                urls.append(url)
+                timestamps.append(timestamp)
 
-    result = text_similarities.sort_values('similarities', ascending=True)
+    # Convert embeddings list to numpy array
+    embeddings_array = np.array(embeddings)
 
-    # Print the top results for debugging
-    print(result.head())
+    # Convert query_embedding to numpy array and reshape
+    query_embedding_array = np.array(query_embedding).reshape(1, -1)
+
+    # Compute cosine similarities
+    similarities = cosine_similarity(query_embedding_array, embeddings_array)[0]
+
+    # Combine results into a DataFrame
+    text_similarities = pd.DataFrame({
+        'texts': texts,
+        'filenames': filenames,
+        'similarities': similarities,
+        'urls': urls,
+        'timestamps': timestamps
+    })
+
+    # Sort by similarity in descending order
+    result = text_similarities.sort_values('similarities', ascending=False)
 
     # Return the top 'n' results
     return result.head(n)
