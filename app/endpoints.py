@@ -17,6 +17,7 @@ from app.utils import (
     get_openai_embedding,
     find_best_texts,
     save_to_db,
+    do_debate,
     get_participant_parties,
     get_participant_genders,
     get_participant_ages,
@@ -188,130 +189,9 @@ async def generate_response_endpoint(request: Request, req_body: QueryRequest, t
         
         logger.info(f"Authenticated user: {token_payload.get('sub')}")  
         
-        # Categorize question
-        category = categorize_question(query)
-
-        # Insert user query into the database
-        vals = (session_id, query, datetime.now(), category)
-        insert_into_database("INSERT INTO Query (sessionId, query, timestamp, category) VALUES (%s, %s, %s, %s)", vals)
-
-        # Retrieve the last query from the database
-        query_id, query = select_from_database("SELECT id, query FROM Query ORDER BY id DESC LIMIT 1")[0]
-
-        # Generate embedding for the user's query
-        query_embedding = get_openai_embedding(query)
-        if query_embedding is None:
-            raise HTTPException(status_code=500, detail="Failed to generate query embedding.")
-
-        ### **Retrieve and process texts for Reichert**
-        # Retrieve texts and metadata for Reichert
-        best_texts_df_reichert = find_best_texts(
-            query_embedding,
-            ['app/data/embeddings/vectorized_chunks_reichert.pkl'],
-            'sources/reichert',
-            4
-        )
-
-        # Process best_texts_df_reichert
-        if not best_texts_df_reichert.empty:
-            best_texts_df_reichert = best_texts_df_reichert.reset_index(drop=True)
-            best_retrieved_texts_reichert = best_texts_df_reichert["texts"].tolist()
-            source_url_reichert = embed_timestamp_in_url(
-                best_texts_df_reichert.iloc[0]["urls"],
-                best_texts_df_reichert.iloc[0]["timestamps"]
-            )
-        else:
-            best_retrieved_texts_reichert = []
-            source_url_reichert = "No URL found"
-
-        # Generate a response for Reichert
-        if best_retrieved_texts_reichert:
-            best_response_reichert = generate_response(query, best_retrieved_texts_reichert)
-        else:
-            best_response_reichert = "This candidate has not spoken publicly on this topic, therefore we are unable to give a response at this time."
-
-        ### **Retrieve and process texts for Ferguson**
-        # Retrieve texts and metadata for Ferguson
-        best_texts_df_ferguson = find_best_texts(
-            query_embedding,
-            ['app/data/embeddings/vectorized_chunks_ferguson.pkl'],
-            'sources/ferguson',
-            4
-        )
-
-        # Process best_texts_df_ferguson
-        if not best_texts_df_ferguson.empty:
-            best_texts_df_ferguson = best_texts_df_ferguson.reset_index(drop=True)
-            best_retrieved_texts_ferguson = best_texts_df_ferguson["texts"].tolist()
-            source_url_ferguson = embed_timestamp_in_url(
-                best_texts_df_ferguson.iloc[0]["urls"],
-                best_texts_df_ferguson.iloc[0]["timestamps"]
-            )
-        else:
-            best_retrieved_texts_ferguson = []
-            source_url_ferguson = "No URL found"
-
-        # Generate a response for Ferguson
-        if best_retrieved_texts_ferguson:
-            best_response_ferguson = generate_response(query, best_retrieved_texts_ferguson)
-        else:
-            best_response_ferguson = "This candidate has not spoken publicly on this topic, therefore we are unable to give a response at this time."
-
-        # Flag non-answers from candidates
-        if "has not spoken publicly" in best_response_reichert.lower():
-            source_url_reichert = "No URL found"
-        if "has not spoken publicly" in best_response_ferguson.lower():
-            source_url_ferguson = "No URL found"
-
-        # Prepare the dictionary response
-        response_data_dict = {
-            "query_id": query_id,
-            "session_id": session_id,
-            "responses": {
-                "reichert": {
-                    "response": best_response_reichert,
-                    "source_url": source_url_reichert,
-                },
-                "ferguson": {
-                    "response": best_response_ferguson,
-                    "source_url": source_url_ferguson,
-                }
-            }
-        }
+        response_data_dict = do_debate(session_id, query)
 
         return JSONResponse(content=response_data_dict)
-
-    except Exception as e:
-        logger.error(f"Error generating response: {e}")
-        raise HTTPException(status_code=500, detail="An error occurred while generating the response.")
-
-
-        # Save responses to the database
-        save_to_db({
-            "query_id": query_id,
-            "candidate_id": 1,
-            "response": best_response_reichert,
-            "retrieved_text": best_retrieved_texts_reichert,
-            "filenames": [txt for txt in best_texts_df_reichert["filenames"].tolist()],
-            "user_voted": 0,
-            "contexts": best_retrieved_texts_reichert,
-            "answer_relevancy": 0.0,
-            "faithfulness": 0.0
-        })
-
-        save_to_db({
-            "query_id": query_id,
-            "candidate_id": 2,
-            "response": best_response_ferguson,
-            "retrieved_text": best_retrieved_texts_ferguson,
-            "filenames": [txt for txt in best_texts_df_ferguson["filenames"].tolist()],
-            "user_voted": 0,
-            "contexts": best_retrieved_texts_ferguson,
-            "answer_relevancy": 0.0,
-            "faithfulness": 0.0
-        })
-
-        return response_data_dict
 
     except Exception as e:
         logger.error(f"An error occurred: {e}")
