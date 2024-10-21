@@ -285,7 +285,7 @@ async def generate_response_endpoint(request: Request, req_body: QueryRequest, t
         # Save responses to the database
         save_to_db({
             "query_id": query_id,
-            "candidate_id": 1,
+            "candidate_id": 2,
             "response": best_response_reichert,
             "retrieved_text": best_retrieved_texts_reichert,
             "filenames": [txt for txt in best_texts_df_reichert["filenames"].tolist()],
@@ -297,7 +297,7 @@ async def generate_response_endpoint(request: Request, req_body: QueryRequest, t
 
         save_to_db({
             "query_id": query_id,
-            "candidate_id": 2,
+            "candidate_id": 1,
             "response": best_response_ferguson,
             "retrieved_text": best_retrieved_texts_ferguson,
             "filenames": [txt for txt in best_texts_df_ferguson["filenames"].tolist()],
