@@ -279,12 +279,8 @@ async def generate_response_endpoint(request: Request, req_body: QueryRequest, t
             }
         }
 
-        return JSONResponse(content=response_data_dict)
-
-    except Exception as e:
-        logger.error(f"Error generating response: {e}")
-        raise HTTPException(status_code=500, detail="An error occurred while generating the response.")
-
+        # Log saving the response before performing the actual save operation
+        logger.info(f"Saving response for query_id: {query_id}")
 
         # Save responses to the database
         save_to_db({
@@ -311,15 +307,11 @@ async def generate_response_endpoint(request: Request, req_body: QueryRequest, t
             "faithfulness": 0.0
         })
 
-        return response_data_dict
+        return JSONResponse(content=response_data_dict)
 
     except Exception as e:
-        logger.error(f"An error occurred: {e}")
-        traceback.print_exc()
-        raise HTTPException(
-            status_code=500,
-            detail="An error occurred while processing your request."
-        )
+        logger.error(f"Error generating response: {e}")
+        raise HTTPException(status_code=500, detail="An error occurred while generating the response.")
 
 # Stats endpoint
 @router.get("/stats", response_model=StatsResponseModel)
