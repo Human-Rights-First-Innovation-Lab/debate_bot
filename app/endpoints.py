@@ -194,12 +194,8 @@ async def generate_response_endpoint(request: Request, req_body: QueryRequest, t
         return JSONResponse(content=response_data_dict)
 
     except Exception as e:
-        logger.error(f"An error occurred: {e}")
-        traceback.print_exc()
-        raise HTTPException(
-            status_code=500,
-            detail="An error occurred while processing your request."
-        )
+        logger.error(f"Error generating response: {e}")
+        raise HTTPException(status_code=500, detail="An error occurred while generating the response.")
 
 # Stats endpoint
 @router.get("/stats", response_model=StatsResponseModel)
