@@ -3,6 +3,7 @@ import pickle
 import re
 import csv
 import json
+import logging
 from jose import jwt, JWTError
 import numpy as np
 from scipy.spatial.distance import cosine
@@ -62,6 +63,9 @@ print(f"MySQL Database: {MYSQL_DATABASE}")
 # SQLAlchemy engine
 engine = sqlalchemy.create_engine(f'mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DATABASE}')
 
+# set up logger
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 async def validate_token(token: str):
     try:
@@ -756,3 +760,33 @@ def get_participant_ages():
         "pct_76": pct_76}
     print(result)
     return result
+
+def evaluate_test_set(testset_file_name):
+    test_questions = pd.read_csv(testset_file_name)
+    questions = test_questions.Question.tolist()
+    session_id = "evaluation_session_" + str(datetime.now())
+    for query in questions:
+        print(query)
+        response_data = do_debate(session_id, query)
+    connection = get_sqlachemy_connection()
+    query = f'''
+        select query, response, contexts
+        from Query q join Response r on q.id = r.queryId 
+        where sessionId = '{session_id}'
+        '''
+    df = pd.read_sql_query(query, connection)
+    connection.close()
+    question = df['query'].tolist()
+    answer = df['response'].tolist()
+    contexts = df['contexts'].tolist()
+    eval_contexts = [eval(x) for x in contexts]
+
+    data = {
+        'question': question,
+        'answer': answer,
+        'contexts' : eval_contexts
+    }
+    dataset = Dataset.from_dict(data)
+    score = evaluate(dataset, metrics=[faithfulness, answer_relevancy])
+    score.to_pandas()
+    return score
