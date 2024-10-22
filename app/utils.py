@@ -789,7 +789,7 @@ def evaluate_test_set(testset_file_name):
     dataset = Dataset.from_dict(data)
     score = evaluate(dataset, metrics=[faithfulness, answer_relevancy])
     score.to_pandas()
-    return score'''
+    return score
 
 def validate_payload_size(payload):
     if len(payload) > MAX_PAYLOAD_SIZE:
