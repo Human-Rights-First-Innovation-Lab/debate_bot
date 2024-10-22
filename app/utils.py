@@ -789,4 +789,15 @@ def evaluate_test_set(testset_file_name):
     dataset = Dataset.from_dict(data)
     score = evaluate(dataset, metrics=[faithfulness, answer_relevancy])
     score.to_pandas()
-    return score
+    return score'''
+
+def validate_payload_size(payload):
+    if len(payload) > MAX_PAYLOAD_SIZE:
+        raise ValueError("Payload size exceeds the maximum allowed limit of 250KB")
+
+def validate_decompressed_payload_size(compressed_payload):
+    decompressed_payload = zlib.decompress(compressed_payload)
+    if len(decompressed_payload) > MAX_PAYLOAD_SIZE:
+        raise ValueError("Decompressed payload size exceeds the maximum allowed limit of 250KB")
+    return decompressed_payload
+
