@@ -24,7 +24,9 @@ from app.utils import (
     get_top_categories,
     get_winner_percents,
     validate_token,
-    embed_timestamp_in_url
+    embed_timestamp_in_url,
+    validate_payload_size,
+    validate_decompressed_payload_size
 )
 from fastapi.responses import JSONResponse
 
@@ -32,16 +34,6 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 MAX_PAYLOAD_SIZE = 256000  # 250KB
-
-def validate_payload_size(payload):
-    if len(payload) > MAX_PAYLOAD_SIZE:
-        raise ValueError("Payload size exceeds the maximum allowed limit of 250KB")
-
-def validate_decompressed_payload_size(compressed_payload):
-    decompressed_payload = zlib.decompress(compressed_payload)
-    if len(decompressed_payload) > MAX_PAYLOAD_SIZE:
-        raise ValueError("Decompressed payload size exceeds the maximum allowed limit of 250KB")
-    return decompressed_payload
 
 # Initialize FastAPI router
 router = APIRouter()
