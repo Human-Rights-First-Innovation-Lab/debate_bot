@@ -17,12 +17,16 @@ from app.utils import (
     get_openai_embedding,
     find_best_texts,
     save_to_db,
+    do_debate,
     get_participant_parties,
     get_participant_genders,
     get_participant_ages,
     get_top_categories,
     get_winner_percents,
-    validate_token
+    validate_token,
+    embed_timestamp_in_url,
+    validate_payload_size,
+    validate_decompressed_payload_size
 )
 from fastapi.responses import JSONResponse
 
@@ -30,16 +34,6 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 MAX_PAYLOAD_SIZE = 256000  # 250KB
-
-def validate_payload_size(payload):
-    if len(payload) > MAX_PAYLOAD_SIZE:
-        raise ValueError("Payload size exceeds the maximum allowed limit of 250KB")
-
-def validate_decompressed_payload_size(compressed_payload):
-    decompressed_payload = zlib.decompress(compressed_payload)
-    if len(decompressed_payload) > MAX_PAYLOAD_SIZE:
-        raise ValueError("Decompressed payload size exceeds the maximum allowed limit of 250KB")
-    return decompressed_payload
 
 # Initialize FastAPI router
 router = APIRouter()
@@ -76,7 +70,7 @@ class SaveRequest(BaseModel):
     answer_relevancy: float
     faithfulness: float
 
-# Load Auth0 settings from environment
+# Load Auth0 settings from environment DO NOT PUT https:// IN AUTH0 DOMAIN
 AUTH0_DOMAIN = os.getenv("AUTH0_DOMAIN", "hrf-production.us.auth0.com")
 AUTH0_AUDIENCE = os.getenv("AUTH0_AUDIENCE", "https://dbapi.hrfinnovation.org/api/v2/")
 ALGORITHMS = ["RS256"]
@@ -187,104 +181,13 @@ async def generate_response_endpoint(request: Request, req_body: QueryRequest, t
         
         logger.info(f"Authenticated user: {token_payload.get('sub')}")  
         
-        # Categorize question
-        category = categorize_question(query)
+        response_data_dict = do_debate(session_id, query)
 
-        # Insert user query into the database
-        vals = (session_id, query, datetime.now(), category)
-        insert_into_database("INSERT INTO Query (sessionId, query, timestamp, category) VALUES (%s, %s, %s, %s)", vals)
-
-        # Retrieve the last query from the database
-        query_id, query = select_from_database("SELECT id, query FROM Query ORDER BY id DESC LIMIT 1")[0]
-
-        # Generate embedding for the user's query
-        query_embedding = get_openai_embedding(query)
-        if query_embedding is None:
-            raise HTTPException(status_code=500, detail="Failed to generate query embedding.")
-
-        # Retrieve texts for Reichert
-        best_texts_df_reichert = find_best_texts(
-            query_embedding,
-            ['app/data/embeddings/vectorized_chunks_reichert.pkl'],
-            'sources/reichert',
-            4
-        )
-        best_retrieved_texts_reichert = best_texts_df_reichert["texts"].tolist()
-        source_url_reichert = best_texts_df_reichert["urls"].tolist()[0] if not best_texts_df_reichert.empty else "No URL found"
-
-        # Generate a response for Reichert
-        best_response_reichert = generate_response(query, best_retrieved_texts_reichert) if best_retrieved_texts_reichert else "No suitable chunk found for Reichert."
-
-        # Retrieve texts for Ferguson
-        best_texts_df_ferguson = find_best_texts(
-            query_embedding,
-            ['app/data/embeddings/vectorized_chunks_ferguson.pkl'],
-            'sources/ferguson',
-            4
-        )
-        best_retrieved_texts_ferguson = best_texts_df_ferguson["texts"].tolist()
-        source_url_ferguson = best_texts_df_ferguson["urls"].tolist()[0] if not best_texts_df_ferguson.empty else "No URL found"
-
-        # Generate a response for Ferguson
-        best_response_ferguson = generate_response(query, best_retrieved_texts_ferguson) if best_retrieved_texts_ferguson else "No suitable chunk found for Ferguson."
-
-        # Flag non-answers from candidates
-        if "i do not have" in best_response_reichert.lower():
-            best_response_reichert = "This candidate has not spoken publicly on this topic, therefore we are unable to give a response at this time."
-
-        if "i do not have" in best_response_ferguson.lower():
-            best_response_ferguson = "This candidate has not spoken publicly on this topic, therefore we are unable to give a response at this time."
-
-        # Prepare the dictionary response
-        response_data_dict = {
-            "query_id": query_id,
-            "session_id": session_id,
-            "responses": {
-                "reichert": {
-                    "response": best_response_reichert,
-                    "source_url": source_url_reichert if "has not spoken publicly" not in best_response_reichert else "No URL found",
-                },
-                "ferguson": {
-                    "response": best_response_ferguson,
-                    "source_url": source_url_ferguson if "has not spoken publicly" not in best_response_ferguson else "No URL found",
-                }
-            }
-        }
-
-        # Save responses to the database
-        save_to_db({
-            "query_id": query_id,
-            "candidate_id": 1,
-            "response": best_response_reichert,
-            "retrieved_text": best_retrieved_texts_reichert,
-            "filenames": [txt for txt in best_texts_df_reichert["filenames"].tolist()],
-            "user_voted": 0,
-            "contexts": best_retrieved_texts_reichert,
-            "answer_relevancy": 0.0,
-            "faithfulness": 0.0
-        })
-
-        save_to_db({
-            "query_id": query_id,
-            "candidate_id": 2,
-            "response": best_response_ferguson,
-            "retrieved_text": best_retrieved_texts_ferguson,
-            "filenames": [txt for txt in best_texts_df_ferguson["filenames"].tolist()],
-            "user_voted": 0,
-            "contexts": best_retrieved_texts_ferguson,
-            "answer_relevancy": 0.0,
-            "faithfulness": 0.0
-        })
-
-        return response_data_dict
+        return JSONResponse(content=response_data_dict)
 
     except Exception as e:
-        logger.error(f"An error occurred: {e}")
-        traceback.print_exc()
-        raise HTTPException(
-            status_code=500,
-            detail="An error occurred while processing your request."
-        )
+        logger.error(f"Error generating response: {e}")
+        raise HTTPException(status_code=500, detail="An error occurred while generating the response.")
 
 # Stats endpoint
 @router.get("/stats", response_model=StatsResponseModel)

@@ -3,9 +3,11 @@ import pickle
 import re
 import csv
 import json
+import logging
 from jose import jwt, JWTError
 import numpy as np
 from scipy.spatial.distance import cosine
+from sklearn.metrics.pairwise import cosine_similarity
 import tiktoken  # OpenAI's tokenizer
 import pandas as pd
 from dotenv import load_dotenv
@@ -61,6 +63,9 @@ print(f"MySQL Database: {MYSQL_DATABASE}")
 # SQLAlchemy engine
 engine = sqlalchemy.create_engine(f'mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DATABASE}')
 
+# set up logger
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 async def validate_token(token: str):
     try:
@@ -253,15 +258,34 @@ def extract_url_from_txt(file_path):
         print(f"Error reading URL from {file_path}: {e}")
         return None
 
+def embed_timestamp_in_url(url, timestamp):
+    if url and timestamp and "youtube.com" in url:
+        # Convert timestamp to seconds
+        h, m, s = 0, 0, 0
+        parts = timestamp.strip().split(':')
+        parts = [int(part) for part in parts]
+        if len(parts) == 3:
+            h, m, s = parts
+        elif len(parts) == 2:
+            m, s = parts
+        elif len(parts) == 1:
+            s = parts[0]
+        total_seconds = h * 3600 + m * 60 + s
+
+        # Check if URL already has query parameters
+        if '?' in url:
+            return f"{url}&t={total_seconds}s"
+        else:
+            return f"{url}?t={total_seconds}s"
+    return url
+    
 # Function to find the best matching texts based on cosine similarity
 def find_best_texts(query_embedding, pkl_filenames, txt_folder_path, n):
-    best_retrieved_texts = []
-    best_filenames = []
-    best_similarities = []
-    best_urls = []  # List to store URLs
-
-    # Dictionary to cache URLs extracted from .txt files
-    url_cache = {}
+    embeddings = []
+    texts = []
+    filenames = []
+    urls = []
+    timestamps = []
 
     # Process each .pkl file and retrieve texts
     for pkl_filename in pkl_filenames:
@@ -269,35 +293,164 @@ def find_best_texts(query_embedding, pkl_filenames, txt_folder_path, n):
             vectorized_chunks = pickle.load(file)
 
             # Process each chunk in the .pkl file
-            for embedding, chunk, chunk_filenames, chunk_urls in vectorized_chunks:
-                # Extract the corresponding .txt filename
-                txt_filename = chunk_filenames[0]  # Assuming chunk_filenames contains the original .txt filename
-                
-                # Compute similarity and store the best results
-                similarity_score = cosine(query_embedding, embedding)
-                if similarity_score > 0:
-                    best_similarities.append(similarity_score)
-                    best_retrieved_texts.append(chunk[0])
-                    best_filenames.append(chunk_filenames[0])
-                    best_urls.append(chunk_urls[0])  # Use the URL from the .pkl file
+            for item in vectorized_chunks:
+                embedding = item['embedding']
+                text = item['text']
+                filename = item['filename']
+                url = item['url']
+                timestamp = item.get('timestamp')  # Use .get() to handle missing timestamps
 
-    # Combine results into a DataFrame and sort by similarity
-    text_similarities = pd.DataFrame(
-        {
-            'texts': best_retrieved_texts,
-            'filenames': best_filenames,
-            'similarities': best_similarities,
-            'urls': best_urls  # Include URLs in the DataFrame
-        }
-    )
+                embeddings.append(embedding)
+                texts.append(text)
+                filenames.append(filename)
+                urls.append(url)
+                timestamps.append(timestamp)
 
-    result = text_similarities.sort_values('similarities', ascending=True)
+    # Convert embeddings list to numpy array
+    embeddings_array = np.array(embeddings)
 
-    # Print the top results for debugging
-    print(result.head())
+    # Convert query_embedding to numpy array and reshape
+    query_embedding_array = np.array(query_embedding).reshape(1, -1)
+
+    # Compute cosine similarities
+    similarities = cosine_similarity(query_embedding_array, embeddings_array)[0]
+
+    # Combine results into a DataFrame
+    text_similarities = pd.DataFrame({
+        'texts': texts,
+        'filenames': filenames,
+        'similarities': similarities,
+        'urls': urls,
+        'timestamps': timestamps
+    })
+
+    # Sort by similarity in descending order
+    result = text_similarities.sort_values('similarities', ascending=False).reset_index(drop=True)
 
     # Return the top 'n' results
     return result.head(n)
+  
+def do_debate(session_id, query):
+    # Categorize question
+    category = categorize_question(query)
+
+    # Insert user query into the database
+    vals = (session_id, query, datetime.now(), category)
+    insert_into_database("INSERT INTO Query (sessionId, query, timestamp, category) VALUES (%s, %s, %s, %s)", vals)
+
+    # Retrieve the last query from the database
+    query_id, query = select_from_database("SELECT id, query FROM Query ORDER BY id DESC LIMIT 1")[0]
+
+    # Generate embedding for the user's query
+    query_embedding = get_openai_embedding(query)
+    if query_embedding is None:
+        raise HTTPException(status_code=500, detail="Failed to generate query embedding.")
+
+    ### **Retrieve and process texts for Reichert**
+    # Retrieve texts and metadata for Reichert
+    best_texts_df_reichert = find_best_texts(
+        query_embedding,
+        ['app/data/embeddings/vectorized_chunks_reichert.pkl'],
+        'sources/reichert',
+        4
+    )
+
+    # Process best_texts_df_reichert
+    if not best_texts_df_reichert.empty:
+        best_texts_df_reichert = best_texts_df_reichert.reset_index(drop=True)
+        best_retrieved_texts_reichert = best_texts_df_reichert["texts"].tolist()
+        source_url_reichert = embed_timestamp_in_url(
+            best_texts_df_reichert.iloc[0]["urls"],
+            best_texts_df_reichert.iloc[0]["timestamps"]
+        )
+    else:
+        best_retrieved_texts_reichert = []
+        source_url_reichert = "No URL found"
+
+    # Generate a response for Reichert
+    if best_retrieved_texts_reichert:
+        best_response_reichert = generate_response(query, best_retrieved_texts_reichert)
+    else:
+        best_response_reichert = "This candidate has not spoken publicly on this topic, therefore we are unable to give a response at this time."
+
+    ### **Retrieve and process texts for Ferguson**
+    # Retrieve texts and metadata for Ferguson
+    best_texts_df_ferguson = find_best_texts(
+        query_embedding,
+        ['app/data/embeddings/vectorized_chunks_ferguson.pkl'],
+        'sources/ferguson',
+        4
+    )
+
+    # Process best_texts_df_ferguson
+    if not best_texts_df_ferguson.empty:
+        best_texts_df_ferguson = best_texts_df_ferguson.reset_index(drop=True)
+        best_retrieved_texts_ferguson = best_texts_df_ferguson["texts"].tolist()
+        source_url_ferguson = embed_timestamp_in_url(
+            best_texts_df_ferguson.iloc[0]["urls"],
+            best_texts_df_ferguson.iloc[0]["timestamps"]
+        )
+    else:
+        best_retrieved_texts_ferguson = []
+        source_url_ferguson = "No URL found"
+
+    # Generate a response for Ferguson
+    if best_retrieved_texts_ferguson:
+        best_response_ferguson = generate_response(query, best_retrieved_texts_ferguson)
+    else:
+        best_response_ferguson = "This candidate has not spoken publicly on this topic, therefore we are unable to give a response at this time."
+
+    # Flag non-answers from candidates
+    if "has not spoken publicly" in best_response_reichert.lower():
+        source_url_reichert = "No URL found"
+    if "has not spoken publicly" in best_response_ferguson.lower():
+        source_url_ferguson = "No URL found"
+
+    # Prepare the dictionary response
+    response_data_dict = {
+        "query_id": query_id,
+        "session_id": session_id,
+        "responses": {
+            "reichert": {
+                "response": best_response_reichert,
+                "source_url": source_url_reichert,
+            },
+            "ferguson": {
+                "response": best_response_ferguson,
+                "source_url": source_url_ferguson,
+            }
+        }
+    }
+
+    # Log saving the response before performing the actual save operation
+    logger.info(f"Saving response for query_id: {query_id}")
+
+    # Save responses to the database
+    save_to_db({
+        "query_id": query_id,
+        "candidate_id": 2,
+        "response": best_response_reichert,
+        "retrieved_text": best_retrieved_texts_reichert,
+        "filenames": [txt for txt in best_texts_df_reichert["filenames"].tolist()],
+        "user_voted": 0,
+        "contexts": best_retrieved_texts_reichert,
+        "answer_relevancy": 0.0,
+        "faithfulness": 0.0
+    })
+
+    save_to_db({
+        "query_id": query_id,
+        "candidate_id": 1,
+        "response": best_response_ferguson,
+        "retrieved_text": best_retrieved_texts_ferguson,
+        "filenames": [txt for txt in best_texts_df_ferguson["filenames"].tolist()],
+        "user_voted": 0,
+        "contexts": best_retrieved_texts_ferguson,
+        "answer_relevancy": 0.0,
+        "faithfulness": 0.0
+    })
+
+    return response_data_dict
 
 # Function to compute scoring metrics
 def get_scoring_metrics(query, response, contexts):
@@ -607,3 +760,44 @@ def get_participant_ages():
         "pct_76": pct_76}
     print(result)
     return result
+
+def evaluate_test_set(testset_file_name):
+    test_questions = pd.read_csv(testset_file_name)
+    questions = test_questions.Question.tolist()
+    session_id = "evaluation_session_" + str(datetime.now())
+    for query in questions:
+        print(query)
+        response_data = do_debate(session_id, query)
+    connection = get_sqlachemy_connection()
+    query = f'''
+        select query, response, contexts
+        from Query q join Response r on q.id = r.queryId 
+        where sessionId = '{session_id}'
+        '''
+    df = pd.read_sql_query(query, connection)
+    connection.close()
+    question = df['query'].tolist()
+    answer = df['response'].tolist()
+    contexts = df['contexts'].tolist()
+    eval_contexts = [eval(x) for x in contexts]
+
+    data = {
+        'question': question,
+        'answer': answer,
+        'contexts' : eval_contexts
+    }
+    dataset = Dataset.from_dict(data)
+    score = evaluate(dataset, metrics=[faithfulness, answer_relevancy])
+    score.to_pandas()
+    return score
+
+def validate_payload_size(payload):
+    if len(payload) > MAX_PAYLOAD_SIZE:
+        raise ValueError("Payload size exceeds the maximum allowed limit of 250KB")
+
+def validate_decompressed_payload_size(compressed_payload):
+    decompressed_payload = zlib.decompress(compressed_payload)
+    if len(decompressed_payload) > MAX_PAYLOAD_SIZE:
+        raise ValueError("Decompressed payload size exceeds the maximum allowed limit of 250KB")
+    return decompressed_payload
+

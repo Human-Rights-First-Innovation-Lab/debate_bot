@@ -396,7 +396,7 @@ Stay informed about the latest changes and improvements to the project. Below yo
 > - includes wins, party affiliations, gender, age, and top categories
 
 ---
-> ### 09/27/2004
+> ### 09/27/2024
 > 
 > **Added Files:**
 > 
@@ -435,6 +435,13 @@ Stay informed about the latest changes and improvements to the project. Below yo
 > - Centralized settings management in `config.py`.
 > - Updated dependencies in `requirements.txt`.
 
+---
+> ### 10/21/2024
+> 
+> **Added Files:**
+> 
+> - `run_evaluation.py`:  
+>   - a script that runs the debate bot on a test dataset from inside testsets folder and generates a csv of the RAGAS evaluation metrics faithfulness and answer relevancy
 
 
 
